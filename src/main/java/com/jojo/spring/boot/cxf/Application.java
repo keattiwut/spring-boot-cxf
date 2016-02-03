@@ -34,61 +34,78 @@ import org.springframework.context.annotation.ImportResource;
 @ImportResource( { "classpath:META-INF/cxf/cxf.xml" } )
 public class Application extends SpringBootServletInitializer {
 
-  public static void main( String[] args ) {
-    SpringApplication.run( Application.class , args );
-  }
+    public static void main( String[] args ) {
+        SpringApplication.run( Application.class , args );
+    }
 
-  @Override
-  protected SpringApplicationBuilder configure( SpringApplicationBuilder builder ) {
-    return builder.sources( Application.class );
-  }
+    @Override
+    protected SpringApplicationBuilder configure(
+            SpringApplicationBuilder builder ) {
+        return builder.sources( Application.class );
+    }
 
-  @Autowired
-  private ApplicationContext applicationContext;
+    @Autowired
+    private ApplicationContext applicationContext;
 
-  // Replaces the need for web.xml
-  @Bean
-  public ServletRegistrationBean servletRegistrationBean( ApplicationContext context ) {
-    return new ServletRegistrationBean( new CXFServlet() , "/api/*" );
-  }
+    // Replaces the need for web.xml
+    @Bean
+    public ServletRegistrationBean servletRegistrationBean(
+            ApplicationContext context ) {
+        return new ServletRegistrationBean( new CXFServlet() , "/api/*" );
+    }
 
-  @Bean
-  public Bus getBus() {
-    return ( Bus ) applicationContext.getBean( Bus.DEFAULT_BUS_ID );
-  }
+    @Bean
+    public Bus getBus() {
+        return ( Bus ) applicationContext.getBean( Bus.DEFAULT_BUS_ID );
+    }
 
-  // Replaces cxf-servlet.xml
-  @Bean
+    @Bean
+    public LoggingInInterceptor getLogInInterceptor() {
+        return new LoggingInInterceptor();
+    }
+
+    @Bean
+    public LoggingOutInterceptor getLogOutInterceptor() {
+        return new LoggingOutInterceptor();
+    }
+
+
+    // Replaces cxf-servlet.xml
+    @Bean
   // <jaxws:endpoint id="helloWorld" implementor="demo.spring.service.HelloWorldImpl"
-  // address="/HelloWorld"/>
-  public EndpointImpl helloWorldService() {
-    EndpointImpl endpoint = new EndpointImpl( getBus() , new HelloWorldService() );
-    endpoint.publish( "/helloservice" );
-    endpoint.getServer().getEndpoint().getInInterceptors().add( new LoggingInInterceptor() );
-    endpoint.getServer().getEndpoint().getOutInterceptors().add( new LoggingOutInterceptor() );
-    return endpoint;
-  }
+    // address="/HelloWorld"/>
+    public EndpointImpl helloWorldService( LoggingInInterceptor logIn ,
+            LoggingOutInterceptor logOut ) {
+        EndpointImpl endpoint = new EndpointImpl( getBus() ,
+                new HelloWorldService() );
+        endpoint.publish( "/helloservice" );
+        endpoint.getServer().getEndpoint().getInInterceptors().add(
+                logIn );
+        endpoint.getServer().getEndpoint().getOutInterceptors().add(
+                logOut );
+        return endpoint;
+    }
 
-  @Bean
-  public Server helloRestService() {
-    JAXRSServerFactoryBean endpoint = new JAXRSServerFactoryBean();
-    endpoint.setServiceBean( new HelloRestServer() );
-    endpoint.setAddress( "/jaxrs" );
-    endpoint.setBus( getBus() );
-    endpoint.setProvider( new JacksonJsonProvider() );
-    // endpoint.getServer().getEndpoint().getInInterceptors().add( new LoggingInInterceptor() );
-    // endpoint.getServer().getEndpoint().getOutInterceptors().add( new LoggingOutInterceptor() );
-    return endpoint.create();
-  }
+    @Bean
+    public Server helloRestService( LoggingInInterceptor logIn ,
+            LoggingOutInterceptor logOut ) {
+        JAXRSServerFactoryBean endpoint = new JAXRSServerFactoryBean();
+        endpoint.setServiceBean( new HelloRestServer() );
+        endpoint.setAddress( "/jaxrs" );
+        endpoint.setBus( getBus() );
+        endpoint.setProvider( new JacksonJsonProvider() );
+        return endpoint.create();
+    }
 
-  // Configure the embedded tomcat to use same settings as default standalone tomcat deploy
-  @Bean
-  public EmbeddedServletContainerFactory embeddedServletContainerFactory() {
+    // Configure the embedded tomcat to use same settings as default standalone tomcat deploy
+    @Bean
+    public EmbeddedServletContainerFactory embeddedServletContainerFactory() {
     // Made to match the context path when deploying to standalone tomcat- can easily be kept in
-    // sync w/ properties
-    TomcatEmbeddedServletContainerFactory factory =
-        new TomcatEmbeddedServletContainerFactory( "/ws-server-1.0" , 8080 );
-    return factory;
-  }
+        // sync w/ properties
+        TomcatEmbeddedServletContainerFactory factory
+                = new TomcatEmbeddedServletContainerFactory( "/ws-server-1.0" ,
+                        8080 );
+        return factory;
+    }
 
 }
