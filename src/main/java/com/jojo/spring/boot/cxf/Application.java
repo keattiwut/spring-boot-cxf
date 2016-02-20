@@ -61,15 +61,22 @@ public class Application extends SpringBootServletInitializer {
 
     @Bean
     public LoggingInInterceptor getLogInInterceptor() {
-        return new LoggingInInterceptor();
+        LoggingInInterceptor logIn = new LoggingInInterceptor();
+        logIn.setPrettyLogging(true);
+        logIn.setShowBinaryContent(true);
+        logIn.setShowMultipartContent(true);
+        return logIn;
     }
 
     @Bean
     public LoggingOutInterceptor getLogOutInterceptor() {
-        return new LoggingOutInterceptor();
+        LoggingOutInterceptor logOut = new LoggingOutInterceptor();
+        logOut.setPrettyLogging(true);
+        logOut.setShowBinaryContent(true);
+        logOut.setShowMultipartContent(true);
+        return logOut;
     }
-
-
+    
     // Replaces cxf-servlet.xml
     @Bean
   // <jaxws:endpoint id="helloWorld" implementor="demo.spring.service.HelloWorldImpl"
@@ -79,10 +86,10 @@ public class Application extends SpringBootServletInitializer {
         EndpointImpl endpoint = new EndpointImpl( getBus() ,
                 new HelloWorldService() );
         endpoint.publish( "/helloservice" );
-        endpoint.getServer().getEndpoint().getInInterceptors().add(
-                logIn );
-        endpoint.getServer().getEndpoint().getOutInterceptors().add(
-                logOut );
+        endpoint.getServer().getEndpoint().getInInterceptors()
+                .add(logIn );
+        endpoint.getServer().getEndpoint().getOutInterceptors()
+                .add(logOut );
         return endpoint;
     }
 
@@ -94,6 +101,10 @@ public class Application extends SpringBootServletInitializer {
         endpoint.setAddress( "/jaxrs" );
         endpoint.setBus( getBus() );
         endpoint.setProvider( new JacksonJsonProvider() );
+        endpoint.getBus().getInInterceptors().add(logIn);
+        endpoint.getBus().getOutInterceptors().add(logOut);
+        endpoint.getBus().getInFaultInterceptors().add(logIn);
+        endpoint.getBus().getOutFaultInterceptors().add(logOut);
         return endpoint.create();
     }
 
